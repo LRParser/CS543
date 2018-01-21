@@ -1,0 +1,18 @@
+1) If in the module exit point, we’d forgot to kfree() all of the elements (or part of elements) – what would happen?   How do you prevent this from happening?  How do you fix this?  Show what happens by simulation.  Is this different than user level – why or why not?  
+Backup your answer. 
+
+If we forget to kfree the kernel-space memory we obtrained via a call to kmalloc, we will have created a kernal-level memory leak. This means that we will have allocated memory to a kernel module that will typically not be released until after the system is restarted, instead of when the module is unloaded, which is generally a more proper time to release memory. We can prevent this from happening via carefully code-reviewing all code that is written at the kernel-level to try to catch bugs before deployment. Additionally we can run our code thru tools like valgrind to catch memory leaks as well as a number of other issues like double-frees (trying to free the same memory twice). We can fix this by ensuring that all allocated memory is released. We can see the problem via monitoring the output of slabtop after running insmod for a module that allocates 50,000 birthday entry structs but does not free them:
+
+Output of slabtop before inserting module:
+
+Active / Total Objects (% used)    : 419296 / 429130 (97.7%)
+
+Output of slabtop after inserting module:
+
+Active / Total Objects (% used)    : 443937 / 452754 (98.1%)
+
+As can be seen, a large amount of memory has been allocated but never freed. Although a similar problem can happen in user-space, it is different (and more severe) here because most user-space programs eventually exit and the OS can return any memory they allocated - here, however, the kernel keeps running and cannot automatically free this memory. Thus this leak may accumulate until the system needs to be rebooted and abruptly runs out of memory. I can back up these claims via reference to the valgrind dynamic analysis tools at: http://valgrind.org/
+
+2) Why are the kernel data structures “simple” (for example, linked list, hash, b-trees)?  Describe all reasons that you can think of. 
+
+
