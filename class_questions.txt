@@ -15,4 +15,34 @@ As can be seen, a large amount of memory has been allocated but never freed. Alt
 
 2) Why are the kernel data structures “simple” (for example, linked list, hash, b-trees)?  Describe all reasons that you can think of. 
 
+Kernel data structures are "simple" for several reasons:
+a) Most have been around for several decades now. Many unnecessary methods have been removed via the "many eyes" principle over time
+b) Early linux systems had very limited memory, allowing only for simple data structures that were very performant, in comparison to more elaborate structures that may have been easier to program with, but which would require more memory
+c) Any kernal-space bug could crash the system and force a reboot. For this reason there is a strong preference for simplicity. See e.g. Linus's posts on why he prefers the simplicity of C over C++. He writes "the choice of C is the only sane choice" at http://harmful.cat-v.org/software/c++/linus
 
+3) What about the security of kernel modules?  Can they manipulate global structures or are they limited to their own variables?  Suggest what you think the rules are and WHY.  How do you get the names of the kernel’s variables?  
+
+Kernel modules in Linux (a monolithic kernel) have poor security properties. As the module can access memory directly via dereferencing a pointer, a kernel module could manipulate global structures in addition to its own variables. I believe that the kernel is this way per design. Linux has historically put a high premium on performance over security, and omitting these security checks helps improve performance overall.
+We can get the names of variables that can be set in the kernel via the sysctl -a command, for example (an excerpt):
+
+vm.overcommit_ratio = 50
+vm.page-cluster = 3
+vm.panic_on_oom = 0
+vm.percpu_pagelist_fraction = 0
+vm.scan_unevictable_pages = 0
+vm.stat_interval = 1
+vm.swappiness = 60
+
+4) What about performance (of both the module and the kernel in general)?  Since these modules are being loaded into the kernel – are they managed in any way? Can they make the kernel perform badly? 
+
+Generally speaking the performance of the module and kernel are quite good - as a monolithic kernel it has been optimized for performance. The fact that modules are loaded allows a type of permissioning very useful on multi-user systems - namely, a user must have sudo permissions to insert a kernel module.
+
+Kernel modules can definitely make a kernel perform badly by mutating internal data structures  and/or requiring excessive amounts of time to execute
+
+5) Do you think that a poorly written driver module could cause the kernel to crash (stop working)?  Why or why not?  How could a kernel stop this from happening?  
+
+A poorly written driver could cause the kernel to crash because it could overwrite internal data structures needed to manage multi-tasking or time, which would immediately interfere with other processes. A kernel could stop this by moving from a monolithic kernel design to micro-kernal where only messages are passed, and data structures cannot be manipulated globally
+
+6) Now let’s consider the approach of kernels which support loadable modules – what are the tradeoffs (think supportability, performance, security, other areas?) between modular kernels (which allow loadable modules) and monolithic kernels (which don’t)?  Describe at least three areas of comparision/contrast. 
+
+It should be noted that an OS such as Linux can have a kernel that is both monolithic and supports modules, however going on generall principles we can say that a modular kernel is more supportable, less performance, but more secure than a fully monolithic kernel. This is because the former can segregate modules to communicate only via message passing, whereas the latter will frequently allow any code to access any part of the kernel-space memory - this improves the security of modular designs relative to monolithic designs. Because monolithic designs share one memory-space, however, and do not need to pass messages, they have improved performance versus modular kernels. Finally, because modular kernels can force modules to communicate via message passing, they reduce the chances that a malicious module will read protectured memory relative to a monolithic kernel which cannot force this. Thus, supportability, performance and security form three areas of contrast.
