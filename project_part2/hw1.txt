@@ -1,0 +1,120 @@
+Output of lsmod:
+
+Module                  Size  Used by
+ccm                    20480  6
+bnep                   20480  2
+pci_stub               16384  1
+vboxpci                24576  0
+vboxnetadp             28672  0
+vboxnetflt             28672  0
+vboxdrv               471040  4 vboxnetadp,vboxnetflt,vboxpci
+nls_iso8859_1          16384  1
+snd_hda_codec_hdmi     49152  1
+hci_uart              106496  0
+btbcm                  16384  1 hci_uart
+joydev                 20480  0
+input_leds             16384  0
+snd_hda_codec_realtek    94208  1
+snd_hda_codec_generic    73728  1 snd_hda_codec_realtek
+snd_hda_intel          40960  5
+snd_hda_codec         126976  4 snd_hda_intel,snd_hda_codec_hdmi,snd_hda_codec_generic,snd_hda_codec_realtek
+snd_hda_core           81920  5 snd_hda_intel,snd_hda_codec,snd_hda_codec_hdmi,snd_hda_codec_generic,snd_hda_codec_realtek
+snd_hwdep              20480  1 snd_hda_codec
+snd_pcm                98304  4 snd_hda_intel,snd_hda_codec,snd_hda_core,snd_hda_codec_hdmi
+snd_seq_midi           16384  0
+snd_seq_midi_event     16384  1 snd_seq_midi
+snd_rawmidi            32768  1 snd_seq_midi
+snd_seq                65536  2 snd_seq_midi_event,snd_seq_midi
+nvidia_uvm            667648  0
+serdev                 20480  1 hci_uart
+mxm_wmi                16384  0
+btqca                  16384  1 hci_uart
+btintel                16384  1 hci_uart
+bluetooth             544768  11 hci_uart,btintel,btqca,bnep,btbcm
+wmi                    24576  1 mxm_wmi
+ecdh_generic           24576  1 bluetooth
+snd_seq_device         16384  3 snd_seq,snd_rawmidi,snd_seq_midi
+snd_timer              32768  2 snd_seq,snd_pcm
+snd                    81920  21 snd_hda_intel,snd_hwdep,snd_seq,snd_hda_codec,snd_timer,snd_rawmidi,snd_hda_codec_hdmi,snd_hda_codec_generic,snd_seq_device,snd_hda_codec_realtek,snd_pcm
+arc4                   16384  2
+rtl8821ae             225280  0
+btcoexist             126976  1 rtl8821ae
+rtl_pci                28672  1 rtl8821ae
+intel_rapl             20480  0
+x86_pkg_temp_thermal    16384  0
+intel_powerclamp       16384  0
+coretemp               16384  0
+kvm_intel             204800  0
+kvm                   585728  1 kvm_intel
+irqbypass              16384  1 kvm
+crct10dif_pclmul       16384  0
+crc32_pclmul           16384  0
+ghash_clmulni_intel    16384  0
+pcbc                   16384  0
+soundcore              16384  1 snd
+aesni_intel           188416  4
+aes_x86_64             20480  1 aesni_intel
+intel_pch_thermal      16384  0
+crypto_simd            16384  1 aesni_intel
+glue_helper            16384  1 aesni_intel
+cryptd                 24576  3 crypto_simd,ghash_clmulni_intel,aesni_intel
+intel_cstate           20480  0
+intel_rapl_perf        16384  0
+rtlwifi                77824  3 rtl_pci,btcoexist,rtl8821ae
+mac80211              782336  3 rtl_pci,rtlwifi,rtl8821ae
+mei_me                 40960  0
+cfg80211              614400  2 mac80211,rtlwifi
+mei                    98304  1 mei_me
+shpchp                 36864  0
+intel_lpss_acpi        16384  0
+acpi_als               16384  0
+intel_lpss             16384  1 intel_lpss_acpi
+kfifo_buf              16384  1 acpi_als
+acpi_pad              180224  0
+mac_hid                16384  0
+industrialio           69632  2 acpi_als,kfifo_buf
+parport_pc             32768  0
+ppdev                  20480  0
+lp                     20480  0
+parport                49152  3 lp,parport_pc,ppdev
+autofs4                40960  2
+uas                    24576  0
+usb_storage            69632  1 uas
+hid_generic            16384  0
+usbhid                 49152  0
+nvidia_drm             45056  1
+nvidia_modeset        860160  5 nvidia_drm
+nvidia              13139968  266 nvidia_modeset,nvidia_uvm
+drm_kms_helper        167936  1 nvidia_drm
+syscopyarea            16384  1 drm_kms_helper
+sysfillrect            16384  1 drm_kms_helper
+sysimgblt              16384  1 drm_kms_helper
+fb_sys_fops            16384  1 drm_kms_helper
+alx                    45056  0
+drm                   356352  4 nvidia_drm,drm_kms_helper
+mdio                   16384  1 alx
+ahci                   36864  4
+libahci                32768  1 ahci
+video                  40960  0
+pinctrl_sunrisepoint    28672  0
+i2c_hid                20480  0
+pinctrl_intel          20480  1 pinctrl_sunrisepoint
+hid                   118784  3 i2c_hid,hid_generic,usbhid
+
+Output of make:
+
+make -C /lib/modules/4.13.0-26-generic/build M=/home/joe/CS543/hw1 modules
+make[1]: Entering directory '/usr/src/linux-headers-4.13.0-26-generic'
+  Building modules, stage 2.
+  MODPOST 1 modules
+make[1]: Leaving directory '/usr/src/linux-headers-4.13.0-26-generic'
+
+
+Output of dmesg after sudo insmod:
+
+[77055.654447] Loading Module
+
+
+Output of dmesg after sudo rmmod:
+
+[77091.384534] Removing Module
