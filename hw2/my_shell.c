@@ -38,6 +38,12 @@ int main(void)
       args[args_idx] = word;
       args_idx++;
     }
+
+    int should_wait = 0;
+    printf("Should wait: %s\n",args[args_idx-1]);
+    should_wait = (args[args_idx-1] == "&");
+    printf("Should wait: %d\n",should_wait);
+
     args[args_idx] = NULL;
 
     for(;i<args_idx;i++)
