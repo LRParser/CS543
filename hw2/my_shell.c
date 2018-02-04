@@ -19,7 +19,7 @@ int main(void)
   while (should_run)
   {
     i = 0;
-    printf("osh>\n");
+    printf("osh>");
     fflush(stdout);
     gets(input_text);
     printf("%s\n",input_text);
@@ -133,16 +133,20 @@ int main(void)
     else if (pid == 0)
     {
       // This is the child process. Run the job
-      printf("Running the job\n");
-      printf("%s\n",args[0]);
-      execvp(args[0],args);
+      //printf("Running the job\n");
+      //printf("%s\n",args[0]);
+      int ret;
+      ret = execvp(args[0],args);
+      if(ret != 0)
+      {
+          printf("Unable to find the command: %s in the PATH\n",args[0]);
+      }
       exit(errno);
     }
     else
     {
       // This is the parent. Wait for the child to finish
       wait(NULL);
-      printf("Command run, waiting for next command\n");
     }
     
   }
