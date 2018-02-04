@@ -12,10 +12,12 @@ int main(void)
   const int args_max_size = MAX_LINE/2 + 1;
   char input_text[args_max_size];
   char *args[args_max_size];
-
   int should_run = 1;
   char *delimiters = " ";
   int i;
+  const int history_size = 3;
+  char command_history[history_size][args_max_size];
+  int commands_run = 0;
   while (should_run)
   {
     i = 0;
@@ -35,12 +37,52 @@ int main(void)
       args_idx++;
     }
 
+    // See if we should exit the shell
+    if(strcmp("exit",args[0]) == 0)
+    {
+        should_run = 0;
+        continue;
+    }
+    if(strcmp("history",args[0]) == 0)
+    {
+        printf("Print history\n");
+        int l;
+        l = commands_run < history_size ? commands_run : history_size;
+        for(;l>0;l--)
+        {
+           printf("%d %s\n",l,command_history[l-1]);
+        }
+    }
+
+
+    int idx_written = 0;
+    if(commands_run > history_size -1)
+    {
+        // Move everything one position left in the array
+        int i;
+        for(i=1;i<history_size;i++)
+        {
+            strcpy(command_history[i-1],command_history[i]);
+        }
+        // Copy new command into last index
+        idx_written = history_size - 1;
+        strcpy(command_history[idx_written],args[0]);
+    }
+    else
+    {
+        idx_written = commands_run;
+        strcpy(command_history[idx_written],args[0]);
+    }
+ 
+    printf("Added to history at idx: %d, %s\n",commands_run,command_history[idx_written]);
+    commands_run++;
+
     int should_wait = 0;
     int path_provided = 0;
     int set_command = 0;
     int set_path_command = 0;
     int dirs_in_path = 0;
-    should_wait = (args[args_idx-1] == '&');
+    should_wait = (strcmp("&",args[args_idx-1]) != 0);
     path_provided = args[0][0] == '/';
     set_command = strcmp("set",args[0]) == 0;
     printf("First char: %c\n",args[0][0]);
@@ -119,6 +161,11 @@ int main(void)
       printf("Parsed: %s\n",args[i]);
     }
     i = 0;
+    if (args_idx >= 2 && strcmp("&",args[args_idx -1]) == 0)
+    {
+        printf("Strip last character%s\n",args[args_idx-1]);
+        args[args_idx-1] = NULL;
+    }
     for(; args_idx < args_max_size;args_idx++)
     {
       args[args_idx] = NULL;
@@ -146,7 +193,14 @@ int main(void)
     else
     {
       // This is the parent. Wait for the child to finish
-      wait(NULL);
+      if(should_wait)
+      {
+          wait(NULL);
+      }
+      else
+      {
+          continue;
+      }
     }
     
   }
