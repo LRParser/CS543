@@ -7,27 +7,16 @@
 #include <errno.h>
 #define MAX_LINE 80
 
-int main(void)
+int args_max_size = MAX_LINE/2 + 1;
+char *args[41];
+int args_idx;
+
+void parse_input_string(char *input_text)
 {
-  const int args_max_size = MAX_LINE/2 + 1;
-  char input_text[args_max_size];
-  char *args[args_max_size];
-  int should_run = 1;
-  char *delimiters = " ";
-  int i;
-  const int history_size = 3;
-  char command_history[history_size][args_max_size];
-  int commands_run = 0;
-  while (should_run)
-  {
-    i = 0;
-    printf("osh>");
-    fflush(stdout);
-    gets(input_text);
+    args_idx = 0;
     printf("%s\n",input_text);
     char* word;
     word = strtok(input_text, " ");
-    int args_idx = 0;
     args[args_idx] = word;
     args_idx++;
     printf("Token: %s\n", word);
@@ -36,14 +25,32 @@ int main(void)
       args[args_idx] = word;
       args_idx++;
     }
+}
 
+int main(void)
+{
+  int should_run = 1;
+  char *delimiters = " ";
+  const int history_size = 3;
+  char command_history[history_size][args_max_size];
+  int commands_run = 0;
+  while (should_run)
+  {
+    int i;
+    char input_text[args_max_size];
+    int repeat_history_command = 0;
+    i = 0;
+    printf("osh>");
+    fflush(stdout);
+    gets(input_text);
+    parse_input_string(input_text);
     // See if we should exit the shell
     if(strcmp("exit",args[0]) == 0)
     {
         should_run = 0;
         continue;
     }
-    if(strcmp("history",args[0]) == 0)
+    else if(strcmp("history",args[0]) == 0)
     {
         printf("Print history\n");
         int l;
@@ -52,10 +59,35 @@ int main(void)
         {
            printf("%d %s\n",l,command_history[l-1]);
         }
+        continue;
     }
+    else if(strcmp("!!",args[0]) == 0)
+    {
+       int last_idx = commands_run < history_size ? commands_run : history_size;
+       if (commands_run >= 1)
+       {
+           char *command = command_history[last_idx-1];
+           printf("Going to re-run command: %s\n",command);
+           int i = 0;
+           for(; i < args_max_size;i++)
+           {
+               args[i] = NULL;
+           }
+           parse_input_string(command);
+           printf("New command: %s\n",args[0]);
 
+       }
+       else
+       {
+           printf("No commands in history\n");
+       }
+       repeat_history_command = 1; 
+    }
+    printf("Later New command: %s\n",args[0]);
 
-    int idx_written = 0;
+    if (!repeat_history_command)
+    {
+    int idx_written;
     if(commands_run > history_size -1)
     {
         // Move everything one position left in the array
@@ -66,16 +98,19 @@ int main(void)
         }
         // Copy new command into last index
         idx_written = history_size - 1;
-        strcpy(command_history[idx_written],args[0]);
+        strcpy(command_history[idx_written],input_text);
     }
     else
     {
         idx_written = commands_run;
         strcpy(command_history[idx_written],args[0]);
     }
- 
-    printf("Added to history at idx: %d, %s\n",commands_run,command_history[idx_written]);
+    printf("Added to history at idx: %d, %s\n",idx_written,command_history[idx_written]);
     commands_run++;
+    }
+ 
+
+    printf("Command to now run: %s\n",args[0]);
 
     int should_wait = 0;
     int path_provided = 0;
