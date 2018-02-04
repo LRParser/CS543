@@ -75,10 +75,16 @@ int main(void)
    repeat_history_command = 1;
    strcpy(input_text,command_copy);
   }
+
+  // If we match an aliased command, we sub that in also, similar to how we sub in a history command
+
   char input_text_copy[args_max_size];
   // Before we tokenize our input string, we make a copy for history storage, as tokenization mutates original string
   strcpy(input_text_copy,input_text);
 
+  int args_idx_new = 0;
+  char* args_new[args_max_size];
+  
   int args_idx = 0;
   char* args[args_max_size];
   char* word;
@@ -206,8 +212,8 @@ int main(void)
        // We validate that the first segment contains a left paren, and remove it
        int new_char_idx = 0;
        int j=0;
-       int path_segment_len = strlen(path_segment);
-       printf("Segment len is: %d\n",path_segment_len);
+       size_t path_segment_len = strlen(path_segment);
+       printf("Segment len is: %zu\n",path_segment_len);
        for(;j<path_segment_len;j++)
        {
          if(path_segment[j] == '.')
@@ -262,16 +268,15 @@ int main(void)
 
   // See if the program name has been aliases by anything
   int match_found = 0;
-  int args_idx_new = 0;
-  char* args_new[args_max_size];
   for(int i = 0; i < aliases_set; i++)
   {
     if(!match_found && strcmp(alias_froms[i],args[0]) == 0)
     {
       printf("Match found %s\n",alias_tos[i]);
+      printf("%zu\n",strlen(alias_tos[i]));
       char alias_to_tokenize[args_max_size];
       strcpy(alias_to_tokenize,alias_tos[i]);
-      //alias_to_tokenize[strlen(alias_tos[i])] = '\0';
+      //alias_to_tokenize[strlen(alias_tos[i])] = '\n';
       char* word;
       word = strtok(alias_to_tokenize, " ");
       args_new[args_idx_new] = word;
@@ -290,7 +295,7 @@ int main(void)
   {
       for(int i = 0; i < args_idx_new; i++)
       {
-        strcpy(args[i],args_new[i]);
+        //strcpy(args[i],args_new[i]);
       }
       args_idx = args_idx_new;
   }
