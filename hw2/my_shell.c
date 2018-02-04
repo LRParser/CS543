@@ -61,11 +61,35 @@ int main(void)
         }
         continue;
     }
-    else if(strcmp("!!",args[0]) == 0)
+    else if(args[0][0] == 0)
     {
        int last_idx = commands_run < history_size ? commands_run : history_size;
-       if (commands_run >= 1)
+       int command_num;
+       if (args[0][1] == '!')
        {
+           command_num = last_idx;
+       }
+       else
+       {
+           // Subtracting zero character will give us an integer
+           if (!isdigit(args[0][1]))
+           {
+               printf("Cannot parse the digit for the repeat command\n");
+               continue;
+           }
+           command_num = args[0][1] - '0';
+       }
+
+       if (commands_run == 0)
+       {
+           printf("No commands in history\n");
+           continue;
+       }
+       else if(command_num <= commands_run - history_size || command_num > commands_run)
+       {
+           printf("No such command in history\n");
+           continue;
+       }
            char *command = command_history[last_idx-1];
            printf("Going to re-run command: %s\n",command);
            int i = 0;
@@ -77,11 +101,12 @@ int main(void)
            printf("New command: %s\n",args[0]);
 
        }
-       else
-       {
-           printf("No commands in history\n");
-       }
        repeat_history_command = 1; 
+    }
+    else if(args[0][0] == '!')
+    {
+        // We have just a single exclamation mark
+        
     }
     printf("Later New command: %s\n",args[0]);
 
