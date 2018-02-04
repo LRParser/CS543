@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -6,263 +7,259 @@
 #include <sys/wait.h>
 #include <errno.h>
 #define MAX_LINE 80
-
-int args_max_size = MAX_LINE/2 + 1;
-char *args[41];
-int args_idx;
-
-void parse_input_string(char *input_text)
-{
-    args_idx = 0;
-    printf("%s\n",input_text);
-    char* word;
-    word = strtok(input_text, " ");
-    args[args_idx] = word;
-    args_idx++;
-    printf("Token: %s\n", word);
-    while((word = strtok(NULL, " ")) != NULL)
-    {
-      args[args_idx] = word;
-      args_idx++;
-    }
-}
+#define DEBUG 0
 
 int main(void)
 {
-  int should_run = 1;
-  char *delimiters = " ";
-  const int history_size = 3;
-  char command_history[history_size][args_max_size];
-  int commands_run = 0;
-  while (should_run)
+ int args_max_size = MAX_LINE/2 + 1;
+ char *args[41];
+ int args_idx;
+ int should_run = 1;
+ char *delimiters = " ";
+ const int history_size = 3;
+ char command_history[history_size][args_max_size];
+ int commands_run = 0;
+ while (should_run)
+ {
+  int i;
+  char input_text[args_max_size];
+  int repeat_history_command = 0;
+  i = 0;
+  printf("osh>");
+  fflush(stdout);
+  fgets(input_text,sizeof input_text,stdin);
+  printf("Got: %s\n",input_text);
+  // Remove the newline
+  input_text[strcspn(input_text,"\n")] = '\0';
+  
+  // The first thing to check is if this is a command like ! or !!. Then, we do not need to tokenize it and instead tokenize the element in history
+
+  if(input_text[0] == '!')
   {
-    int i;
-    char input_text[args_max_size];
-    int repeat_history_command = 0;
-    i = 0;
-    printf("osh>");
-    fflush(stdout);
-    gets(input_text);
-    parse_input_string(input_text);
-    // See if we should exit the shell
-    if(strcmp("exit",args[0]) == 0)
-    {
-        should_run = 0;
-        continue;
-    }
-    else if(strcmp("history",args[0]) == 0)
-    {
-        printf("Print history\n");
-        int l;
-        l = commands_run < history_size ? commands_run : history_size;
-        for(;l>0;l--)
-        {
-           printf("%d %s\n",l,command_history[l-1]);
-        }
-        continue;
-    }
-    else if(args[0][0] == 0)
-    {
-       int last_idx = commands_run < history_size ? commands_run : history_size;
-       int command_num;
-       if (args[0][1] == '!')
-       {
-           command_num = last_idx;
-       }
-       else
-       {
-           // Subtracting zero character will give us an integer
-           if (!isdigit(args[0][1]))
-           {
-               printf("Cannot parse the digit for the repeat command\n");
-               continue;
-           }
-           command_num = args[0][1] - '0';
-       }
-
-       if (commands_run == 0)
-       {
-           printf("No commands in history\n");
-           continue;
-       }
-       else if(command_num <= commands_run - history_size || command_num > commands_run)
-       {
-           printf("No such command in history\n");
-           continue;
-       }
-           char *command = command_history[last_idx-1];
-           printf("Going to re-run command: %s\n",command);
-           int i = 0;
-           for(; i < args_max_size;i++)
-           {
-               args[i] = NULL;
-           }
-           parse_input_string(command);
-           printf("New command: %s\n",args[0]);
-
-       }
-       repeat_history_command = 1; 
-    }
-    else if(args[0][0] == '!')
-    {
-        // We have just a single exclamation mark
-        
-    }
-    printf("Later New command: %s\n",args[0]);
-
-    if (!repeat_history_command)
-    {
-    int idx_written;
-    if(commands_run > history_size -1)
-    {
-        // Move everything one position left in the array
-        int i;
-        for(i=1;i<history_size;i++)
-        {
-            strcpy(command_history[i-1],command_history[i]);
-        }
-        // Copy new command into last index
-        idx_written = history_size - 1;
-        strcpy(command_history[idx_written],input_text);
-    }
-    else
-    {
-        idx_written = commands_run;
-        strcpy(command_history[idx_written],args[0]);
-    }
-    printf("Added to history at idx: %d, %s\n",idx_written,command_history[idx_written]);
-    commands_run++;
-    }
- 
-
-    printf("Command to now run: %s\n",args[0]);
-
-    int should_wait = 0;
-    int path_provided = 0;
-    int set_command = 0;
-    int set_path_command = 0;
-    int dirs_in_path = 0;
-    should_wait = (strcmp("&",args[args_idx-1]) != 0);
-    path_provided = args[0][0] == '/';
-    set_command = strcmp("set",args[0]) == 0;
-    printf("First char: %c\n",args[0][0]);
-    printf("Should wait: %d\n",should_wait);
-    printf("Path provided: %d\n",path_provided);
-    printf("Set command: %d\n",set_command);
-    if (set_command && args_idx >= 2)
-    {
-        if(strcmp("path",args[1]) == 0 && strcmp("=",args[2]) == 0)
-        {
-            char desired_path[1024];
-            const char *path_start = "PATH=";
-            strncpy(desired_path,"PATH=",sizeof(path_start));
-            for(i = 3; i < args_idx; i++)
-            {
-               char* path_segment = args[i];
-               printf("Segment is: %s\n",path_segment);
-               char path_segment_processed[1024];
-               // We validate that the first segment contains a left paren, and remove it
-               int new_char_idx = 0;
-               int j=0;
-               int path_segment_len = strlen(path_segment);
-               printf("Segment len is: %d\n",path_segment_len);
-               for(;j<path_segment_len;j++)
-               {
-                   if(path_segment[j] == '.')
-                   {
-                      char cwd[1024];
-                      if(getcwd(cwd,sizeof(cwd)) != NULL)
-                      {
-                          printf("Resolve cwd as: %s\n",cwd);
-                          int cwd_len = strlen(cwd);
-                          int k = 0;
-                          for(; k < cwd_len; k++)
-                          {
-                              path_segment_processed[new_char_idx] = cwd[k];
-                          }
-                      }
-                   }
-                   else if(path_segment[j] != '(' && path_segment[j] != ')')
-                   {
-                      path_segment_processed[new_char_idx] = path_segment[j];
-                      new_char_idx++; 
-                   }
-               }
-               j = 0;
-
-               printf("Adding to path: %s\n",args[i]);
-               strncat(desired_path,path_segment_processed,sizeof(path_segment_processed));
-               if(i < args_idx - 1)
-               {
-                   const char *path_sep = ":";
-                   strcat(desired_path,path_sep);                
-               }
-            }
-            char* pathvar = getenv("PATH");
-            printf("Initial pathvar=%s\n",pathvar);
-            printf("Full desired path: %s\n",desired_path);
-            //putenv(desired_path);
-            pathvar = getenv("PATH");
-            printf("New pathvar=%s\n",pathvar);
-
-
-            i = 0;
-        }
-        else {
-            printf("I see you entered a set command, but it was not in the form set path = (path1 path2)\n");
-            printf("Please resubmit\n");
-            continue;
-        }
-    }
-    args[args_idx] = NULL;
-
-    for(;i<args_idx;i++)
-    {
-      printf("Parsed: %s\n",args[i]);
-    }
-    i = 0;
-    if (args_idx >= 2 && strcmp("&",args[args_idx -1]) == 0)
-    {
-        printf("Strip last character%s\n",args[args_idx-1]);
-        args[args_idx-1] = NULL;
-    }
-    for(; args_idx < args_max_size;args_idx++)
-    {
-      args[args_idx] = NULL;
-    }
-
-    // Here, we fork
-    pid_t pid = fork();
-    if (pid < 0)
-    {
-      fprintf(stderr,"Error while trying to fork\n");
-    }
-    else if (pid == 0)
-    {
-      // This is the child process. Run the job
-      //printf("Running the job\n");
-      //printf("%s\n",args[0]);
-      int ret;
-      ret = execvp(args[0],args);
-      if(ret != 0)
-      {
-          printf("Unable to find the command: %s in the PATH\n",args[0]);
-      }
-      exit(errno);
-    }
-    else
-    {
-      // This is the parent. Wait for the child to finish
-      if(should_wait)
-      {
-          wait(NULL);
-      }
-      else
-      {
-          continue;
-      }
-    }
-    
+   int last_idx = commands_run < history_size ? commands_run : history_size;
+   printf("Last_idx %d\n",last_idx);
+   int command_num;
+   if (input_text[1] == '!')
+   {
+     command_num = last_idx;
+   }
+   else
+   {
+     // Subtracting zero character will give us an integer
+     if (!isdigit(input_text[1]))
+     {
+       printf("Cannot parse the digit for the repeat command\n");
+       continue;
+     }
+     else
+     {
+       command_num = input_text[1] - '0';
+     }
+   }
+   if (commands_run == 0)
+   {
+     printf("No commands in history\n");
+     continue;
+   }
+   else if(command_num <= commands_run - history_size || command_num > commands_run)
+   {
+     printf("No such command in history\n");
+     continue;
+   }
+   printf("Take from history\n");
+   char *command = command_history[last_idx-1];
+   char command_copy[args_max_size];
+   strcpy(command_copy,command);
+   printf("Going to re-run command: %s\n",command_copy);
+   repeat_history_command = 1;
+   strcpy(input_text,command_copy);
   }
-  return 0;
+  char input_text_copy[args_max_size];
+  // Before we tokenize our input string, we make a copy for history storage, as tokenization mutates original string
+  strcpy(input_text_copy,input_text);
+  int args_idx = 0;
+  char* args[args_max_size];
+  char* word;
+  word = strtok(input_text, " ");
+  args[args_idx] = word;
+  args_idx++;
+  while((word = strtok(NULL, " ")) != NULL)
+  {
+   args[args_idx] = word;
+   args_idx++;
+  }
+  // See if we should exit the shell
+  if(strcmp("exit",args[0]) == 0)
+  {
+    should_run = 0;
+    continue;
+  }
+  else if(strcmp("history",args[0]) == 0)
+  {
+    printf("Print history\n");
+    int l;
+    l = commands_run < history_size ? commands_run : history_size;
+    for(;l>0;l--)
+    {
+     printf("%d %s\n",l,command_history[l-1]);
+    }
+    continue;
+  }
+  printf("Later New program: %s\n",args[0]);
+
+  if (!repeat_history_command)
+  {
+  int idx_written;
+  if(commands_run > history_size -1)
+  {
+    // Move everything one position left in the array
+    int i;
+    for(i=1;i<history_size;i++)
+    {
+      strcpy(command_history[i-1],command_history[i]);
+    }
+    // Copy new command into last index
+    idx_written = history_size - 1;
+    strcpy(command_history[idx_written],input_text_copy);
+  }
+  else
+  {
+    idx_written = commands_run;
+    strcpy(command_history[idx_written],input_text_copy);
+  }
+  printf("Added to history at idx: %d, %s\n",idx_written,command_history[idx_written]);
+  commands_run++;
+  }
+
+
+  printf("Command to now run: %s\n",args[0]);
+
+  int should_wait = 0;
+  int path_provided = 0;
+  int set_command = 0;
+  int set_path_command = 0;
+  int dirs_in_path = 0;
+  should_wait = (strcmp("&",args[args_idx-1]) != 0);
+  path_provided = args[0][0] == '/';
+  set_command = strcmp("set",args[0]) == 0;
+  printf("First char: %c\n",args[0][0]);
+  printf("Should wait: %d\n",should_wait);
+  printf("Path provided: %d\n",path_provided);
+  printf("Set command: %d\n",set_command);
+  if (set_command && args_idx >= 2)
+  {
+    if(strcmp("path",args[1]) == 0 && strcmp("=",args[2]) == 0)
+    {
+      char desired_path[1024];
+      const char *path_start = "PATH=";
+      strncpy(desired_path,"PATH=",sizeof(path_start));
+      for(i = 3; i < args_idx; i++)
+      {
+       char* path_segment = args[i];
+       printf("Segment is: %s\n",path_segment);
+       char path_segment_processed[1024];
+       // We validate that the first segment contains a left paren, and remove it
+       int new_char_idx = 0;
+       int j=0;
+       int path_segment_len = strlen(path_segment);
+       printf("Segment len is: %d\n",path_segment_len);
+       for(;j<path_segment_len;j++)
+       {
+         if(path_segment[j] == '.')
+         {
+           char cwd[1024];
+           if(getcwd(cwd,sizeof(cwd)) != NULL)
+           {
+             printf("Resolve cwd as: %s\n",cwd);
+             int cwd_len = strlen(cwd);
+             int k = 0;
+             for(; k < cwd_len; k++)
+             {
+               path_segment_processed[new_char_idx] = cwd[k];
+             }
+           }
+         }
+         else if(path_segment[j] != '(' && path_segment[j] != ')')
+         {
+           path_segment_processed[new_char_idx] = path_segment[j];
+           new_char_idx++; 
+         }
+       }
+       j = 0;
+
+       printf("Adding to path: %s\n",args[i]);
+       strncat(desired_path,path_segment_processed,sizeof(path_segment_processed));
+       if(i < args_idx - 1)
+       {
+         const char *path_sep = ":";
+         strcat(desired_path,path_sep);                
+       }
+      }
+      char* pathvar = getenv("PATH");
+      printf("Initial pathvar=%s\n",pathvar);
+      printf("Full desired path: %s\n",desired_path);
+      //putenv(desired_path);
+      pathvar = getenv("PATH");
+      printf("New pathvar=%s\n",pathvar);
+
+
+      i = 0;
+    }
+    else {
+      printf("I see you entered a set command, but it was not in the form set path = (path1 path2)\n");
+      printf("Please resubmit\n");
+      continue;
+    }
+  }
+  args[args_idx] = NULL;
+
+  for(;i<args_idx;i++)
+  {
+   printf("Parsed: %s\n",args[i]);
+  }
+  i = 0;
+  if (args_idx >= 2 && strcmp("&",args[args_idx -1]) == 0)
+  {
+    printf("Strip last character%s\n",args[args_idx-1]);
+    args[args_idx-1] = NULL;
+  }
+  for(; args_idx < args_max_size;args_idx++)
+  {
+   args[args_idx] = NULL;
+  }
+
+  // Here, we fork
+  pid_t pid = fork();
+  if (pid < 0)
+  {
+   fprintf(stderr,"Error while trying to fork\n");
+  }
+  else if (pid == 0)
+  {
+   // This is the child process. Run the job
+   printf("Running the job\n");
+   printf("%s\n",args[0]);
+   int ret;
+   ret = execvp(args[0],args);
+   if(ret != 0)
+   {
+     printf("Unable to find the command: %s in the PATH\n",args[0]);
+   }
+   exit(errno);
+  }
+  else
+  {
+   // This is the parent. Wait for the child to finish
+   if(should_wait)
+   {
+     wait(NULL);
+   }
+   else
+   {
+     continue;
+   }
+  }
+  
+ }
+ return 0;
 }
