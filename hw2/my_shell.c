@@ -58,7 +58,7 @@ int main(void)
             {
                char* path_segment = args[i];
                printf("Segment is: %s\n",path_segment);
-               char path_segment_processed[30];
+               char path_segment_processed[1024];
                // We validate that the first segment contains a left paren, and remove it
                int new_char_idx = 0;
                int j=0;
@@ -66,7 +66,21 @@ int main(void)
                printf("Segment len is: %d\n",path_segment_len);
                for(;j<path_segment_len;j++)
                {
-                   if(path_segment[j] != '(' && path_segment[j] != ')')
+                   if(path_segment[j] == '.')
+                   {
+                      char cwd[1024];
+                      if(getcwd(cwd,sizeof(cwd)) != NULL)
+                      {
+                          printf("Resolve cwd as: %s\n",cwd);
+                          int cwd_len = strlen(cwd);
+                          int k = 0;
+                          for(; k < cwd_len; k++)
+                          {
+                              path_segment_processed[new_char_idx] = cwd[k];
+                          }
+                      }
+                   }
+                   else if(path_segment[j] != '(' && path_segment[j] != ')')
                    {
                       path_segment_processed[new_char_idx] = path_segment[j];
                       new_char_idx++; 
