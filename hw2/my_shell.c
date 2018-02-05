@@ -7,12 +7,11 @@
 #include <sys/wait.h>
 #include <errno.h>
 #define MAX_LINE 80
-#define DEBUG 1
+#define DEBUG 0
 
 int main(void)
 {
  const int args_max_size = MAX_LINE/2 + 1;
- //int args_idx;
  int should_run = 1;
  char *delimiters = " ";
  const int history_size = 10;
@@ -28,6 +27,12 @@ int main(void)
   printf("osh>");
   fflush(stdout);
   fgets(input_text,sizeof input_text,stdin);
+
+  if(strlen(input_text) == 1)
+  {
+    continue;
+  }
+
   if(DEBUG)
     printf("Got: %s\n",input_text);
   // Remove the newline
@@ -67,20 +72,35 @@ int main(void)
      printf("No such command in history\n");
      continue;
    }
-   printf("Take from history\n");
+   if(DEBUG)
+     printf("Take from history\n");
    char *command = command_history[last_idx-1];
    char command_copy[args_max_size];
    strcpy(command_copy,command);
-   printf("Going to re-run command: %s\n",command_copy);
+   if(DEBUG)
+      printf("Going to re-run command: %s\n",command_copy);
    repeat_history_command = 1;
    strcpy(input_text,command_copy);
   }
 
   // If we match an aliased command, we sub that in also, similar to how we sub in a history command
+  int match_found = 0;
+  for(int i = 0; i < aliases_set; i++)
+  {
+    if(!match_found && strcmp(alias_froms[i],input_text) == 0)
+    {
+      if(DEBUG)
+         printf("Match found %s\n",alias_tos[i]);
+      strcpy(input_text,alias_tos[i]);
+      match_found = 1;
+    }
+  }
 
   char input_text_copy[args_max_size];
   // Before we tokenize our input string, we make a copy for history storage, as tokenization mutates original string
   strcpy(input_text_copy,input_text);
+
+
 
   int args_idx_new = 0;
   char* args_new[args_max_size];
@@ -108,7 +128,8 @@ int main(void)
     l = commands_run < history_size ? commands_run : history_size;
     for(;l>0;l--)
     {
-     printf("%d %s\n",l,command_history[l-1]);
+     if(DEBUG)
+       printf("%d %s\n",l,command_history[l-1]);
     }
     continue;
   }
@@ -207,13 +228,11 @@ int main(void)
       {
        char path_segment[args_max_size];
        strcpy(path_segment,args[i]);
-       printf("Segment is: %s\n",path_segment);
        char path_segment_processed[2 * args_max_size];
        // We validate that the first segment contains a left paren, and remove it
        int new_char_idx = 0;
        int j=0;
        size_t path_segment_len = strlen(path_segment);
-       printf("Segment len is: %zu\n",path_segment_len);
        for(;j<path_segment_len;j++)
        {
          if(path_segment[j] == '.')
@@ -221,7 +240,6 @@ int main(void)
            char cwd[4 * args_max_size];
            if(getcwd(cwd,sizeof(cwd)) != NULL)
            {
-             printf("Resolve cwd as: %s\n",cwd);
              int cwd_len = strlen(cwd);
              int k = 0;
              for(; k < cwd_len; k++)
@@ -247,11 +265,8 @@ int main(void)
        }
       }
       char* pathvar = getenv("PATH");
-      //printf("Initial pathvar=%s\n",pathvar);
-      //printf("Full desired path: %s\n",desired_path);
       putenv(desired_path);
       pathvar = getenv("PATH");
-      //printf("New pathvar=%s\n",pathvar);
     }
     else {
       printf("I see you entered a set command, but it was not in the form set path = (path1 path2)\n");
@@ -259,68 +274,25 @@ int main(void)
       continue;
     }
   }
-  //args[args_idx] = NULL;
 
-  for(int i = 0;i<args_idx;i++)
+  if (DEBUG)
   {
-   printf("Parsed: %s\n",args[i]);
-  }
-
-  // See if the program name has been aliases by anything
-  int match_found = 0;
-  for(int i = 0; i < aliases_set; i++)
-  {
-    if(!match_found && strcmp(alias_froms[i],args[0]) == 0)
+    for(int i = 0;i<args_idx;i++)
     {
-      printf("Match found %s\n",alias_tos[i]);
-      printf("%zu\n",strlen(alias_tos[i]));
-      char alias_to_tokenize[args_max_size];
-      strcpy(alias_to_tokenize,alias_tos[i]);
-      //alias_to_tokenize[strlen(alias_tos[i])] = '\n';
-      char* word;
-      word = strtok(alias_to_tokenize, " ");
-      args_new[args_idx_new] = word;
-      args_idx_new++;
-      while((word = strtok(NULL, " ")) != NULL)
-      {
-       args_new[args_idx_new] = word;
-       args_idx_new++;
-      }
-      match_found = 1;
-      printf("args_idx_new is: %d\n",args_idx_new);
+     printf("Parsed: %s\n",args[i]);
     }
   }
 
-  if (match_found)
-  {
-      for(int i = 0; i < args_idx_new; i++)
-      {
-        //strcpy(args[i],args_new[i]);
-      }
-      args_idx = args_idx_new;
-  }
-  printf("args_idx is: %d\n",args_idx);
-
-  //args[args_idx] = NULL;
-
-  for(int i = 0;i<args_idx;i++)
-  {
-   printf("Args: %s\n",args[i]);
-  }
 
   if (args_idx >= 2 && strcmp("&",args[args_idx -1]) == 0)
   {
-    printf("Strip last character%s\n",args[args_idx-1]);
+    if(DEBUG)
+      printf("Strip last character%s\n",args[args_idx-1]);
     args[args_idx-1] = NULL;
   }
   for(int i = args_idx; i < args_max_size;i++)
   {
    args[i] = NULL;
-  }
-
-  for(int i = 0; i < args_idx; i++)
-  {
-    printf("Last hurrah: %s\n",args[i]);
   }
 
   // Here, we fork
@@ -333,27 +305,15 @@ int main(void)
   {
    // Here this is the child. In the context of the child process, run the command
    int ret;
-   printf("Running the job: \n");
-   if (match_found)
+   if(DEBUG) 
    {
-     printf("%s\n",args_new[0]);
-     ret = execvp(args_new[0],args_new);
-   }
-   else
-   {
+     printf("Running the job: \n");
      printf("%s\n",args[0]);
-     ret = execvp(args[0],args);
    }
+   ret = execvp(args[0],args);
    if(ret != 0)
    {
-     if (match_found)
-     {
-       printf("Unable to find the command: %s in the PATH\n",args_new[0]);
-     }
-     else
-     {
-       printf("Unable to find the command: %s in the PATH\n",args[0]);
-     }
+     printf("Unable to find the command: %s in the PATH\n",args[0]);
    }
    exit(errno);
   }
