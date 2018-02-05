@@ -7,8 +7,9 @@
 #include <sys/wait.h>
 #include <errno.h>
 #define MAX_LINE 80
-#define DEBUG 1
 
+
+int DEBUG=0;
 const int ARGS_MAX_SIZE = MAX_LINE/2 + 1;
 
 /**
@@ -75,7 +76,8 @@ void process_command(char *input_text, int *should_run, const int history_size, 
      strcpy(input_text,command_copy);
     }
 
-    printf("Checking for alias match\n");
+    if(DEBUG)
+      printf("Checking for alias match\n");
 
     // If we match an aliased command, we sub that in also, similar to how we sub in a history command
     int match_found = 0;
@@ -90,7 +92,8 @@ void process_command(char *input_text, int *should_run, const int history_size, 
       }
     }
 
-    printf("Checked for alias match\n");
+    if(DEBUG)
+      printf("Checked for alias match\n");
 
 
     char input_text_copy[ARGS_MAX_SIZE];
@@ -114,7 +117,8 @@ void process_command(char *input_text, int *should_run, const int history_size, 
      args_idx++;
     }
 
-    printf("Tokenized\n");
+    if(DEBUG)
+      printf("Tokenized\n");
 
     // See if we should exit the shell
     if(strcmp("exit",args[0]) == 0)
@@ -181,14 +185,16 @@ void process_command(char *input_text, int *should_run, const int history_size, 
         return;
       }
     }
+    if(DEBUG)
+      printf("Writing entry in history\n");
 
-    printf("Writing entry in history\n");
     if (!repeat_history_command)
     {
     int idx_written;
     if(*commands_run > history_size -1)
     {
-      printf("History full, making space\n");
+      if(DEBUG)
+        printf("History full, making space\n");
 
       // Move everything one position left in the array
       int i;
@@ -202,7 +208,8 @@ void process_command(char *input_text, int *should_run, const int history_size, 
     }
     else
     {
-      printf("Add directly to history\n");
+      if(DEBUG)
+        printf("Add directly to history\n");
       idx_written = *commands_run;
       strcpy(command_history[idx_written],input_text_copy);
     }
@@ -338,11 +345,12 @@ void process_command(char *input_text, int *should_run, const int history_size, 
  *
  * Ensures the arrays that store history and alias states are properly allocated on the heap
  *
+ * @param history_size - used to determine number of aliases or commands to store at most
  * @param command_history - used to implement history function in shell
- * @param alias_tos - determins what the from string will be substituted to
+ * @param alias_tos - determines what the from string will be substituted to
  * @param alias_froms - used to store the from part of an alias
  */
-void init_history_arrays(char **command_history, char **alias_tos, char **alias_froms)
+void init_history_arrays(int history_size, char **command_history, char **alias_tos, char **alias_froms)
 {
   for(int i = 0; i < history_size; i++)
   {
@@ -376,7 +384,7 @@ int main(void)
  char** alias_tos = malloc(history_size * sizeof(char));
  char** alias_froms = malloc(history_size * sizeof(char));
 
- init_history_arrays(command_history, alias_tos, alias_froms);
+ init_history_arrays(history_size, command_history, alias_tos, alias_froms);
 
  int commands_run = 0;
  int aliases_set = 0;
@@ -387,11 +395,33 @@ int main(void)
 
   if(!init_file_processed)
   {
+    FILE *fp;
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t chars;
+
+    char* home_path = getenv("HOME");
+    char file_path[strlen(home_path) + 20];
+    strcpy(file_path,home_path);
+    strcat(file_path,"/.cs543rc");
+    fp = fopen(file_path, "r");
+    if(fp == NULL)
+    {
+      init_file_processed = 1;
+    }
+    else
+    {
+
+      while((chars = getline(&line, &len, fp)) != -1)
+      {
+        process_command(line, &should_run, history_size, &commands_run, command_history, alias_froms, alias_tos, &aliases_set);
+      }
+
+      fclose(fp);
+    }
     init_file_processed = 1;
   }
   else {
-
-  }
 
   printf("osh>");
   fflush(stdout);
@@ -403,6 +433,8 @@ int main(void)
   }
 
   process_command(input_text, &should_run, history_size, &commands_run, command_history, alias_froms, alias_tos, &aliases_set);
+
+  }
 
  }
  return 0;
