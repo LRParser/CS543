@@ -30,8 +30,20 @@ void process_command(char *input_text, int *should_run, const int history_size, 
       printf("Got: %s\n",input_text);
     // Remove the newline
     input_text[strcspn(input_text,"\n")] = '\0';
-    printf("Removed newline\n");
-    // The first thing to check is if this is a command like ! or !!. Then, we do not need to tokenize it and instead tokenize the element in history
+
+    // If this is a simple debug config command, we set debug flag accordingly and return
+    if(strcmp(input_text,"set verbose on") == 0)
+    {
+      DEBUG = 1;
+      return;
+    }
+    else if(strcmp(input_text,"set verbose off") == 0)
+    {
+      DEBUG = 0;
+      return;
+    }
+
+    // The next thing to check is if this is a command like ! or !!. Then, we do not need to tokenize it and instead tokenize the element in history
     int repeat_history_command = 0;
     if(input_text[0] == '!')
     {
@@ -128,12 +140,14 @@ void process_command(char *input_text, int *should_run, const int history_size, 
     }
     else if(strcmp("history",args[0]) == 0)
     {
+      if(DEBUG)
+        printf("Print history\n");
+
       int l;
       l = *commands_run < history_size ? *commands_run : history_size;
       for(;l>0;l--)
       {
-       if(DEBUG)
-         printf("%d %s\n",l,command_history[l-1]);
+        printf("%d %s\n",l,command_history[l-1]);
       }
       return;
     }
@@ -273,9 +287,14 @@ void process_command(char *input_text, int *should_run, const int history_size, 
            strcat(desired_path,path_sep);
          }
         }
+
+        if(DEBUG)
+          printf("Setting path to: %s\n",desired_path);
+
         char* pathvar = getenv("PATH");
         putenv(desired_path);
         pathvar = getenv("PATH");
+        return;
       }
       else {
         printf("I see you entered a set command, but it was not in the form set path = (path1 path2)\n");
@@ -378,7 +397,7 @@ int main(void)
 {
  int should_run = 1;
  char *delimiters = " ";
- const int history_size = 10;
+ const int history_size = 100;
 
  char** command_history = malloc(history_size * sizeof(char));
  char** alias_tos = malloc(history_size * sizeof(char));

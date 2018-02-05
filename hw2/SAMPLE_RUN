@@ -1,0 +1,41 @@
+joe@powerspec:~/CS543/hw2$ make run
+gcc -g -o my_shell_refactored my_shell_refactored.c
+./my_shell_refactored
+"Running .cs543rc from home"
+"To repro, copy cs543 to home dir"
+Mon Feb  5 21:31:53 CET 2018
+powerspec
+Last_idx 4
+powerspec
+Last_idx 4
+powerspec
+total 88
+drwxrwxr-x 2 joe joe  4096 Feb  5 21:31 .
+drwxrwxr-x 5 joe joe  4096 Jan 24 11:23 ..
+-rw-rw-r-- 1 joe joe   207 Feb  5 21:31 cs543rc
+-rw-rw-r-- 1 joe joe    20 Feb  5 21:02 .gitignore
+-rw-rw-r-- 1 joe joe   239 Feb  5 21:29 Makefile
+-rwxrwxr-x 1 joe joe  9632 Feb  5 21:30 my_program
+-rw-rw-r-- 1 joe joe    89 Feb  5 21:30 my_program.c
+-rwxrwxr-x 1 joe joe 24384 Feb  5 21:31 my_shell_refactored
+-rw-rw-r-- 1 joe joe 12338 Feb  5 21:28 my_shell_refactored.c
+-rw-rw-r-- 1 joe joe   196 Feb  5 19:57 .project
+-rw-rw-r-- 1 joe joe    32 Feb  5 21:06 README
+-rw-rw-r-- 1 joe joe  1177 Feb  5 21:31 SAMPLE_RUN
+joe
+Mon Feb  5 21:31:53 CET 2018
+My custom program was found and run!
+Got: ls
+
+Checking for alias match
+Checked for alias match
+Tokenized
+Writing entry in history
+Add directly to history
+Command to now run: ls
+Parsed: ls
+Running the job: 
+ls
+cs543rc  Makefile  my_program  my_program.c  my_shell_refactored  my_shell_refactored.c  README  SAMPLE_RUN
+Got: set verbose off
+

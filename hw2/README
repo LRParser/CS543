@@ -1,0 +1,57 @@
+Joseph Heenan
+CS543
+Homework 2
+
+To run this program, type "make run". This was tested on a Ubuntu 16.04 LTS operating system.
+Note: If you also want to repro the same output as in the SAMPLE_RUN file, just run:
+make my_program
+This will create a program in this directory that you can use to test custom path functionality
+Then run:
+cp cs543rc ~/.cs543rc
+And, you should get similar output the sample run output in the SAMPLE_RUN file.
+
+General shell features and notes:
+
+The shell supports the following types of commands
+
+alias command = "target" -> Defining an alias
+set verbose on -> Setting verbose mode
+set verbose off -> Disabling verbose mode
+ls -la -> Running a command from the path example
+set path = (. /bin /usr/bin) -> The . is interpreted as current working directory, and the PATH environment variable is set
+history -> A history of the last 30 commands run
+!4 -> Where 4 represents to run the command listed next to the number 4 in this history
+!! -> Re-run the last command
+exit -> To exit the shell
+
+Misc notes:
+
+Maximum argument size is 41 characters. Redefining an alias within a session is not supported.
+
+Note - the extra credit was not attempted
+
+Answers to additional questions to be answered:
+1. Could you write a command line shell using threads rather than processes? Why or why
+not? What would be the advantages and disadvantages of this approach?
+
+I believe that you could use threads instead of processes, because calls to e.g. execvp would be replaced with calls to create and run a p_thread
+in a Linux environment. Some advantages of this approach would be more lightweight creation of threads vs processes, which would be good for a shell
+running many distinct commands. Some disadvantages would be the difficulty of piping together input in a standardized way, as each thread would not
+have a unique handle to standard input and output, making building a command pipeline more difficult. Additionally, the fact that shell commands run
+in additional processes makes memory management less risky, as each process has its own address space and less chance of interfering with others.
+
+2. How do you resolve name collisions between internal shell keywords and system
+programs? For example, if there is a system program called “alias” – how would you
+execute it?
+
+I resolve name collisions by always giving the shell name priority in cases where there is no absolute path. Thus, if there is a system
+program called alias, located at e.g. /bin/alias, a shell used would need to type in /bin/alias. In this way programs can be disambiguated but
+users can still make use of convenient shell shortcuts
+
+3. How would you run a shell under a different usercode? What would you have to require
+in order to do it? Would it be different just to run a command? (like sudo).
+
+To run a shell under a different usercode, I would need to spawn it from the context of a process already running under that usercode.
+Then, it wil inherit the permissions of the different user process from which it is launched. After this shell is launched, there is no difference in
+just running a single command - all will run under this user's context. We could create this separate context using su, to switch to the user we wish
+to run the shell under 
