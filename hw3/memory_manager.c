@@ -6,12 +6,17 @@
 int main()
 {
 
-  int page_table_entries = 256;
-  int page_size_in_bytes = 256;
-  int tlb_entries = 16;
-  int frame_size = 256;
-  int num_frames = 256;
-  int memory_in_bytes = frame_size * num_frames;
+  const int num_pages = 256;
+  const int page_size_in_bytes = 256;
+  const int num_tlb_entries = 16;
+  const int frame_size = 256;
+  const int num_frames = 256;
+  const int memory_in_bytes = frame_size * num_frames;
+  int frames_written = 0;
+  int pages_written = 0;
+
+  uint8_t page_table_keys[page_table_num_entries];
+  uint8_t page_table_values[page_table_num_entries];
 
   // This implies each page table entry can store a single byte
 
@@ -22,13 +27,40 @@ int main()
     //buf[strlen(buf)-1] = '\0';
     uint32_t v_addr = strtoul(buf,NULL,10);
 
-    uint32_t mid_8 = (v_addr & 0xFFFF) >> 8;
-    uint32_t low_8 = v_addr & 0xFF;
+    uint8_t mid_8 = (v_addr & 0xFFFF) >> 8;
+    uint8_t low_8 = v_addr & 0xFF;
 
-    uint32_t page_num = mid_8;
-    uint32_t offset_num = low_8;
+    uint8_t page_num = mid_8;
+    uint8_t offset_num = low_8;
+    
+    uint16_t phy_addr = frames_written * frame_size + offset_num;
 
-    printf("Virtual address: %d, mid_8: %d, low_8: %d\n",v_addr,mid_8,low_8);
+    int frame_num;
+    int page_table_hit = 0;
+
+    // Try to find this page in the page table. 
+
+    for (int i=0; i < num_pages; i++)
+    {
+      if(page_table_keys[i] == page_num)
+      {
+        frame_num = page_table_values[i];
+        page_table_hit = 1;
+      }
+    }
+
+    if (!page_table_hit)
+    {
+      frame_num = frames_written;
+      frames_written++;
+    }
+
+    page_table_keys[pages_written] = page_num;
+    page_table_values[pages_written] = frame_num;
+
+    printf("Virtual address: %d, page_num: %d, offset: %d, frames_num: %d, physical address: %d\n",v_addr,page_num, offset, frame_num, phy_addr);
+
+    frames_written++;
 
     // First, try to get the frame for the page_num from TLB
 
