@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#define DEBUG 1
+#include <stdio.h>
+
+#define DEBUG 0
 int main()
 {
 
@@ -17,6 +19,8 @@ int main()
 
   uint8_t page_table_keys[num_pages];
   uint8_t page_table_values[num_pages];
+
+  // This implies that the data that we read in at each physical address is a single byte
   char physical_memory[num_frames][frame_size];
 
 
@@ -27,13 +31,21 @@ int main()
     page_table_values[i] = 0;
   }
 
-  // This implies each page table entry can store a single byte
+  // Ensure we can open the backing store
+  FILE *fp;
+  fp = fopen("BACKING_STORE.bin","rb");
+  
+  if (fp == NULL)
+  {
+    printf("Unable to open backing store\n");
+    exit(1);
+  }
+
 
   FILE *addresses = fopen("addresses.txt","r");
   char buf[256];
   while(fgets(buf,sizeof(buf),addresses) != NULL)
   {
-    //buf[strlen(buf)-1] = '\0';
     uint32_t v_addr = strtoul(buf,NULL,10);
 
     uint8_t mid_8 = (v_addr & 0xFFFF) >> 8;
@@ -45,7 +57,7 @@ int main()
 
     int frame_num = 0;
     int page_table_hit = 0;
-    char* frame_contents;
+    char frame_contents[frame_size];
 
     // First, try to get the frame for the page_num from TLB
     // To be implemented
@@ -58,7 +70,7 @@ int main()
       if(page_table_keys[i] == page_num)
       {
         frame_num = page_table_values[i];
-        frame_contents = physical_memory[frame_num];
+        memcpy(frame_contents,physical_memory[frame_num],sizeof(char) * frame_size);
         page_table_hit = 1;
         if (DEBUG)
         {
@@ -72,20 +84,18 @@ int main()
     {
       // We store the data at the next available frame
       frame_num = pages_written % num_pages;
-
-      FILE *fp;
-      if ((fp = fopen("BACKING_STORE.bin","rb")) != NULL)
+      fseek(fp, sizeof(char)*frame_size*page_num, SEEK_SET);
+      fread(frame_contents, sizeof(char), frame_size, fp);
+      
+      // Store in physical memory to reduce likelihood of having to read from backing store again on proximate future attempts to retrieve this page/frame combination
+      for (int i=0; i < frame_size; i++)
       {
-        fseek(fp, sizeof(char)*frame_size*page_num, SEEK_SET);
-        fread(frame_contents, sizeof(char), frame_size, fp);
-        fclose(fp);
+        physical_memory[frame_num][i] = frame_contents[i];
       }
-
       page_table_keys[pages_written] = page_num;
       page_table_values[pages_written] = frame_num;
       pages_written++;
     }
-
 
     uint16_t phy_addr = frame_num * frame_size + offset_num;
 
