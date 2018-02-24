@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-
+#define DEBUG 1
 int main()
 {
 
@@ -23,7 +23,7 @@ int main()
   // Initialize all page table keys and values to 0
   for(int i=0; i<num_pages; i++)
   {
-    page_table_keys[i] = 0;
+    page_table_keys[i] = 2 * num_frames;
     page_table_values[i] = 0;
   }
 
@@ -60,13 +60,18 @@ int main()
         frame_num = page_table_values[i];
         frame_contents = physical_memory[frame_num];
         page_table_hit = 1;
+        if (DEBUG)
+        {
+          printf("Page table hit for page %d returns frame %d\n",page_num,frame_num);
+        }
       }
     }
 
     // If this also fails, a page fault occurs. In this case, we read a 256-byte page (at page_num) from the backing store
     if (!page_table_hit)
     {
-      frame_num = frames_written;
+      // We store the data at the next available frame
+      frame_num = pages_written % num_pages;
 
       FILE *fp;
       if ((fp = fopen("BACKING_STORE.bin","rb")) != NULL)
@@ -76,18 +81,24 @@ int main()
         fclose(fp);
       }
 
-      frames_written++;
+      page_table_keys[pages_written] = page_num;
+      page_table_values[pages_written] = frame_num;
+      pages_written++;
     }
 
-    page_table_keys[pages_written] = page_num;
-    page_table_values[pages_written] = frame_num;
 
     uint16_t phy_addr = frame_num * frame_size + offset_num;
 
     char byte_at_addr = frame_contents[offset_num];
 
-    printf("Virtual address: %d, page_num: %d, frame_num: %d, offset: %d, physical address: %d, value: %d\n",v_addr,page_num, frame_num, offset_num, phy_addr, byte_at_addr);
-
+    if(DEBUG)
+    {
+      printf("Virtual address: %d, page_num: %d, frame_num: %d, offset: %d, physical address: %d, value: %d\n",v_addr,page_num, frame_num, offset_num, phy_addr, byte_at_addr);
+    }
+    else
+    {
+      printf("Virtual address: %d Physical address: %d Value: %d\n",v_addr,phy_addr,byte_at_addr);
+    }
 
 
 
