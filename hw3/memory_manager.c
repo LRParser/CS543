@@ -14,21 +14,34 @@ int main()
   const int frame_size = 256;
   const int num_frames = 256;
   const int memory_in_bytes = frame_size * num_frames;
+
+  // This is a value that we use to initialize all int size fields, for ease in debugging
+  const int INIT_VAL = 9999;
+
   int frames_written = 0;
   int pages_written = 0;
 
-  uint8_t page_table_keys[num_pages];
+  int page_table_keys[num_pages];
   uint8_t page_table_values[num_pages];
 
   // This implies that the data that we read in at each physical address is a single byte
   char physical_memory[num_frames][frame_size];
 
+  // Ensure physical memory is initialized properly
+  for (int i=0; i<num_frames; i++)
+  {
+    for (int j=0; j<frame_size; j++)
+    {
+      physical_memory[i][j] = 255;
+    }
+  }
+
 
   // Initialize all page table keys and values to 0
   for(int i=0; i<num_pages; i++)
   {
-    page_table_keys[i] = 2 * num_frames;
-    page_table_values[i] = 0;
+    page_table_keys[i] = INIT_VAL;
+    page_table_values[i] = INIT_VAL;
   }
 
   // Ensure we can open the backing store
@@ -76,6 +89,7 @@ int main()
         {
           printf("Page table hit for page %d returns frame %d\n",page_num,frame_num);
         }
+        break;
       }
     }
 
@@ -83,7 +97,11 @@ int main()
     if (!page_table_hit)
     {
       // We store the data at the next available frame
-      frame_num = pages_written % num_pages;
+      frame_num = pages_written;
+      if (DEBUG)
+      {
+        printf("pages_written is: %d storing at: %d\n",pages_written,frame_num);
+      }
       fseek(fp, sizeof(char)*frame_size*page_num, SEEK_SET);
       fread(frame_contents, sizeof(char), frame_size, fp);
       
