@@ -1,0 +1,36 @@
+Joseph Heenan
+CS543
+
+Additional questions to be answered:
+1. Who owns the pages in physical memory (process, user, or system)? How would you denote
+ownership?
+
+A page in physical memory (e.g., a frame) may be logically mapped to a number of different logical pages via a page table. The page table itself is owned by the system (often with specialized hardware support, particularly in the case of the TLB), so at this level of analysis one can say that the memory is "owned/managed" by the operating system. The operating system will also generate an interrupt if a process tries to access memory outside of the valid range that it has allocated, so at this level the system (generating gere a segmentation fault) also manages access to the physical memory. At another level, processes themselves are allocated ownership of segments, however given a fork (and subsequent copy on write marking of a page in physical memory) this ownership may be shared. Thus the best answer may be "it depends", noting that the operating system manages access at the process level.
+
+Ownership of pages in memory can be denoted in the process control block maintained by the kernel. Each process will map to its own page directory, and if a process attempts to access a page that is not in its directory, the system can throw a fault.
+
+
+2. When you replace an entry in the TLB do you have to write it back to physical memory?
+Why or why not?
+
+The purpose of the TLB is to provide very fast resolution of the mapping between a page number and a frame number. This helps for programs with a large locality factor (e.g., accessing frequently many similar and close memory addresses). However when an entry is replaced in the TLB, even if the associated page has a dirty/written bit set, there is no need to update it in a physical backing store/outside of cache until actual paging occurrs and this page is needed by another process. Thus there is no need to page anything out assuming all that is changing is a TLB entry.
+
+3. Does the size of the TLB make a difference in your statistics? Experiment by simulation.
+
+I experimented with the following TLB sizes
+
+TLB size: 8
+TLB hit rate in percent: 2.597403
+
+TLB size: 16
+TLB hit rate in percent: 5.594406
+
+TLB size: 32
+TLB hit rate in percent: 12.187813
+
+From here I can see a somewhat greater than linear increase in hit rate, proportional to increases in TLB size; each time I double the TLB size (from 8 to 16, and 16 to 32), the hit rate increases by a factor of approximately (but slightly larger than) 2.
+
+EXTRA CREDIT: Can this virtual memory manager have more levels of memory (for example,
+cache) – If so, how? If not, why not?
+
+This virtual memory manager could have more levels of memory. For instance, we could have multiple caches via adding multiple TLBs. We might have one initial (very fast, but memory-limited) first-level TLB, then a somewhat slower (and typically larger) second-level TLB, etc. We can then hope to typically resolve most queries from the L1 TLB, and otherwise use the L2 TLB, etc. Using an algorithm such as LRU we can then update these TLBs to ensure that the least recently used addresses generally migrate "outwards" to slower and slower caches, until they are no longer cached at all. In this way we will get fastest resolution of the most important page-frame mapping information
