@@ -1,0 +1,22 @@
+The run of the initial version of the program (256 entries) shows:
+
+Page-fault rate in percent: 24.400000
+TLB hit rate in percent: 5.500000
+
+For the first version of the program there was never a need to move a page out of phyiscal memory, so we show no stats on page evacuation (soft flush, no write to backing store) rate
+
+The run of the second version (128 entries) shows:
+
+Page-fault rate in percent: 24.400000
+TLB hit rate in percent: 5.500000
+Page evacuation rate in percent: 11.599999
+
+The TLB hit rate and page fault rate remain the same as these are unchanged. Because there is no writing to pages I called my new stat (which measures the percent of times we overwrite an entry in our now-smaller physical memory) the "page evacuation" rate.
+
+The run of the third version (using addresses2.txt and only counting a flush for a page with the write bit set) show the statistics:
+
+Page-fault rate in percent: 24.375626
+TLB hit rate in percent: 5.594406
+Page flush rate in percent: 4.495504
+
+This shows that the TLB hit rate was slightly higher, suggestion a greater locality of access patterns in the addresses2 dataset vs addresses1
