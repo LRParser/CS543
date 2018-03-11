@@ -23,7 +23,7 @@ int main()
   // We keep track of the number of TLB hits and page faults
   int tlb_hit_count = 0;
   int page_fault_count = 0;
-
+  int page_flush_count = 0;
   int frames_written = 0;
   int pages_written = 0;
   int tlb_entries_written = 0;
@@ -199,7 +199,10 @@ int main()
       
       // NOTE: Here we would flush the contents of the frame, but since we do not modify memory
       // in this assignment, it is not really needed
-
+      if(need_frame_flush)
+      {
+        page_flush_count++;
+      }
 
       // Store in physical memory to reduce likelihood of having to read from backing store again on proximate future attempts to retrieve this page/frame combination
       // NOTE: For this modified section of project, we have less physical memory than virtual memory. So, we must make sure
@@ -291,5 +294,6 @@ int main()
 
   printf("Page-fault rate in percent: %f\n",100 * (page_fault_count/(float)current_time));
   printf("TLB hit rate in percent: %f\n", 100 * (tlb_hit_count/(float)current_time));
+  printf("Page evacuation rate in percent: %f\n", 100 * (page_flush_count/(float)current_time));
 
 }
